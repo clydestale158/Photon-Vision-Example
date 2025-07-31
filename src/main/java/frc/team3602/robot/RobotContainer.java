@@ -34,6 +34,7 @@ public class RobotContainer {
 
     /* Subsystems */
     private DrivetrainSubsystem driveSubsys = TunerConstants.createDrivetrain();
+    private Vision vision = new Vision();
 
     /* Sendable Choosers */
     public SendableChooser<Command> autoChooser;
@@ -44,6 +45,7 @@ public class RobotContainer {
         if (RobotBase.isSimulation()) {
             simConfigDefaultCommands();
             simConfigButtonBindings();
+            vision.resetVisSim();
         } else {
             configDefaultCommands();
             configButtonBindings();
@@ -106,5 +108,13 @@ public class RobotContainer {
         polarityChooserSideways.setDefaultOption("Standard", 1.0);
         polarityChooserSideways.addOption("Inverted", -1.0);
         SmartDashboard.putData("Sideways Polarity Chooser", polarityChooserSideways);
+    }
+
+    public void updateVisionSim(){
+        vision.updateVisSim(driveSubsys.getState().Pose);
+    }
+
+    public void updateVision(){
+        vision.updateReadings();
     }
 }

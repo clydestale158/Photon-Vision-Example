@@ -27,6 +27,7 @@ public class Robot extends TimedRobot {
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
+    robotContainer.updateVision();
   }
 
   @Override
@@ -61,20 +62,16 @@ public class Robot extends TimedRobot {
   }
 
   @Override
-  public void testInit() {// NON STANDARD testInit() ***DO NOT USE IN CODE BEYOND SIM*****
-    // allows us to run autons while having joystick inputs - helpful to allow us to
-    // have sim booleans that are for laser cans irl
-    CommandScheduler.getInstance().cancelAll();
-    if (Utils.isSimulation()) {
-      autonomousCommand = robotContainer.autoChooser.getSelected();
-      if (autonomousCommand != null) {
-        autonomousCommand.schedule();
-      }
-    }
+  public void testInit() {
   }
 
   @Override
   public void testPeriodic() {
+  }
+
+  @Override
+  public void simulationPeriodic(){
+    robotContainer.updateVisionSim();
   }
 
 }
