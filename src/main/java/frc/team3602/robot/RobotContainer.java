@@ -19,7 +19,7 @@ import frc.team3602.robot.subsystems.drive.DrivetrainSubsystem;
 import frc.team3602.robot.subsystems.drive.generated.TunerConstants;
 
 public class RobotContainer {
-    /* Controllers */ 
+    /* Controllers */
     private CommandXboxController xbox = new CommandXboxController(0);
     private CommandXboxController xbox2 = new CommandXboxController(1);
 
@@ -110,11 +110,21 @@ public class RobotContainer {
         SmartDashboard.putData("Sideways Polarity Chooser", polarityChooserSideways);
     }
 
-    public void updateVisionSim(){
+    public void updateVisionSim() {
         vision.updateVisSim(driveSubsys.getState().Pose);
     }
 
-    public void updateVision(){
+    public void updateVision() {
         vision.updateReadings();
+    }
+
+    public void updateRobotPose_Vision() {
+        //if (vision.target1Visible) {
+            driveSubsys.addVisionMeasurement(vision.camera1EstPose, vision.camera1PETimeStamp);
+        //}
+
+        if (vision.target2Visible) {
+            driveSubsys.addVisionMeasurement(vision.camera1EstPose, vision.camera1PETimeStamp);
+        }
     }
 }

@@ -6,13 +6,13 @@ import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.simulation.PhotonCameraSim;
 import org.photonvision.simulation.VisionSystemSim;
-import org.photonvision.targeting.PhotonPipelineResult;
-
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import static edu.wpi.first.math.util.Units.degreesToRadians;
 
@@ -58,9 +58,6 @@ public class Vision {
     private final PhotonPoseEstimator camera1PE = new PhotonPoseEstimator(layout, poseStrat, ROBOT_TO_CAM_1);
     private final PhotonPoseEstimator camera2PE = new PhotonPoseEstimator(layout, poseStrat, ROBOT_TO_CAM_2);
 
-    public double camera1PETimeStamp = 0;
-    public double camera2PETimeStamp = 0;
-
     /* Data vars */ // things we want to use/read, must be updated perioidcally and will be the
                     // latest version
     public boolean target1Visible = false;
@@ -68,26 +65,34 @@ public class Vision {
     public Transform3d target1Transform = new Transform3d(
             new Translation3d(0, 0, 0),
             new Rotation3d(0, 0, 0));
+    public Pose2d camera1EstPose = new Pose2d(
+            new Translation2d(0, 0),
+            new Rotation2d(0, 0));
+    public double camera1PETimeStamp = 0;
 
     public boolean target2Visible = false;
     public int target2Id = 0;
     public Transform3d target2Transform = new Transform3d(
             new Translation3d(0, 0, 0),
             new Rotation3d(0, 0, 0));
+    public Pose2d camera2EstPose = new Pose2d(
+            new Translation2d(0, 0),
+            new Rotation2d(0, 0));
+    public double camera2PETimeStamp = 0;
 
     /* Constructor, supports sim */
     public Vision() {
         if (RobotBase.isSimulation()) {
             /* camera sim setup */
             camera1Sim = new PhotonCameraSim(new PhotonCamera(CAM_1_NAME));
-            camera1Sim.prop.setCalibError(0.2, 0.08);
-            camera1Sim.prop.setFPS(20);
+            camera1Sim.prop.setCalibError(0.08, 0.02);
+            camera1Sim.prop.setFPS(10);
             camera1Sim.prop.setAvgLatencyMs(35);
             camera1Sim.prop.setLatencyStdDevMs(5);
 
             camera2Sim = new PhotonCameraSim(new PhotonCamera(CAM_2_NAME));
-            camera2Sim.prop.setCalibError(0.2, 0.08);
-            camera2Sim.prop.setFPS(20);
+            camera2Sim.prop.setCalibError(0.08, 0.02);
+            camera2Sim.prop.setFPS(10);
             camera2Sim.prop.setAvgLatencyMs(35);
             camera2Sim.prop.setLatencyStdDevMs(5);
 
@@ -122,7 +127,9 @@ public class Vision {
     /** Must be called periodically! */
     public void updateReadings() {
         var results1 = camera1.getAllUnreadResults();
-        if (results1.isEmpty()) {
+        Optional<EstimatedRobotPose> estPose1 = Optional.empty();
+
+        if (results1.isEmpty()) { //sets data to default values 
             target1Visible = false;
             target1Id = 0;
             target1Transform = new Transform3d(
@@ -136,14 +143,26 @@ public class Vision {
                     target1Id = target.fiducialId;
                     target1Transform = target.bestCameraToTarget;
 
+                    estPose1 = camera1PE.update(result1);
+                    estPose1.ifPresent(est -> {
+                        camera1EstPose = est.estimatedPose.toPose2d();
+                        camera1PETimeStamp = est.timestampSeconds;
+                    });
+
                     SmartDashboard.putString("Cam 1 readings", target.toString());
+                    SmartDashboard.putNumber("Cam 1 PE X", camera1EstPose.getX());
+                    SmartDashboard.putNumber("Cam 1 PE Y", camera1EstPose.getY());
+                    SmartDashboard.putNumber("Cam 1 PE Rot", camera1EstPose.getRotation().getDegrees());
+                    SmartDashboard.putNumber("Cam 1 PE Timestamp", camera1PETimeStamp);
                 }
             }
 
         }
 
         var results2 = camera2.getAllUnreadResults();
-        if (results2.isEmpty()) {
+        Optional<EstimatedRobotPose> estPose2 = Optional.empty();
+
+        if (results2.isEmpty()) { //sets data to default values
             target2Visible = false;
             target2Id = 0;
             target2Transform = new Transform3d(
@@ -157,8 +176,20 @@ public class Vision {
                     target2Id = target.fiducialId;
                     target2Transform = target.bestCameraToTarget;
 
+                    estPose2 = camera2PE.update(result2);
+                    estPose2.ifPresent(est -> {
+                        camera2EstPose = est.estimatedPose.toPose2d();
+                        camera2PETimeStamp = est.timestampSeconds;
+                    });
+
                     SmartDashboard.putString("Cam 2 readings", target.toString());
+                    SmartDashboard.putNumber("Cam 2 PE X", camera2EstPose.getX());
+                    SmartDashboard.putNumber("Cam 2 PE Y", camera2EstPose.getY());
+                    SmartDashboard.putNumber("Cam 2 PE Rot", camera2EstPose.getRotation().getDegrees());
+                    SmartDashboard.putNumber("Cam 2 PE Timestamp", camera2PETimeStamp);
                 }
             }
         }
+    }
+
 }
